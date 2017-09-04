@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <strings.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -16,6 +17,7 @@ int main(int argc, char** argv){
     serv_addr.sin_port = htons(3000);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     mysocket = socket(AF_INET, SOCK_STREAM, 0);
+
     bind(mysocket, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
 
     listen(mysocket, 5);
@@ -35,6 +37,8 @@ int main(int argc, char** argv){
     bzero(buffer, BUFFSIZE);
     n = read(conn, buffer, BUFFSIZE);
     printf("buffer:%s\n", buffer);
+
+    n = write(conn,"I got your message\n",18);
         
     return 0;
 
