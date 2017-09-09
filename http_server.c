@@ -12,6 +12,7 @@ int main(int argc, char** argv){
     int mysocket, conn, clilen, n; 
     struct sockaddr_in serv_addr, client_addr;
     char buffer[BUFFSIZE];
+    pid_t pid;
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(3000);
@@ -24,23 +25,35 @@ int main(int argc, char** argv){
 
     clilen = sizeof(client_addr);
 
-    conn = accept(mysocket, (struct sockaddr*) &client_addr, &clilen);
+    for(;;){
+        conn = accept(mysocket, (struct sockaddr*) &client_addr, &clilen);
 
-    if(conn < 0){
-        printf("ERROR ACCEPTING CONNECTION");
+        if(conn < 0){
+            printf("ERROR ACCEPTING CONNECTION");
+        }
+        else{
+            printf("%d\n", conn);
+            printf("CONNTECTION ACCEPTED\n");
+        }
+
+        if((pid == fork()) == 0){
+
+
+            close(mysocket);
+            bzero(buffer, BUFFSIZE);
+            n = read(conn, buffer, BUFFSIZE);
+            printf("buffer:%s\n", buffer);
+
+            n = send(conn,"I got your message\n",18, 0);
+
+            exit(0);
+        }
+
+        close(conn);
     }
-    else{
-        printf("%d\n", conn);
-        printf("CONNTECTION ACCEPTED\n");
-    }
 
-    bzero(buffer, BUFFSIZE);
-    n = read(conn, buffer, BUFFSIZE);
-    printf("buffer:%s\n", buffer);
-
-    n = write(conn,"I got your message\n",18);
         
-    return 0;
+    /*#return 0;*/
 
 }
 
