@@ -5,8 +5,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <sys/wait.h>
+#include "http_server.h"
 #define BUFFSIZE 32
-
+#define MAX_COMMAND_SIZE 5
 int main(int argc, char** argv){
 
     int mysocket, conn, clilen, n; 
@@ -24,7 +26,6 @@ int main(int argc, char** argv){
     listen(mysocket, 5);
 
     clilen = sizeof(client_addr);
-
     for(;;){
         conn = accept(mysocket, (struct sockaddr*) &client_addr, &clilen);
 
@@ -38,22 +39,48 @@ int main(int argc, char** argv){
 
         if((pid == fork()) == 0){
 
-
             close(mysocket);
             bzero(buffer, BUFFSIZE);
-            n = read(conn, buffer, BUFFSIZE);
+            read(conn, buffer, BUFFSIZE);
             printf("buffer:%s\n", buffer);
+            process_command(buffer);
 
-            n = send(conn,"I got your message\n",18, 0);
+            send(conn,"I got your message\n",18, 0);
 
+            close(conn);
             exit(0);
         }
-
+        wait(0);
         close(conn);
     }
-
-        
-    /*#return 0;*/
-
+    return 0;
 }
 
+void process_command(char* buffer){
+    const char* valid_commands[] = {"GET", "POST", "PUT", "DELETE", NULL};
+    char* p1 = buffer; 
+    char* p2 = buffer;
+    char command[MAX_COMMAND_SIZE];
+    int cnt = 0;
+    
+    while(p1 != NULL){
+        if( *(p1) == ' '){
+           *(p1) = '\0';
+            p1 ++;
+            strcpy(command, p2); 
+            p2 = p1;
+        }
+        else{
+            p1++;
+        }
+    }
+    
+    while(valid_commands[cnt] != NULL){
+        if(strcmp(command, valid_commands[cnt]) == 0){
+            printf("valid command"); 
+            break;
+        }
+        cnt++;
+    }
+    
+}
