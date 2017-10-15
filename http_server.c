@@ -6,15 +6,21 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <signal.h>
 #include "http_server.h"
-#define BUFFSIZE 32
+#define BUFFSIZE 512
 #define MAX_COMMAND_SIZE 5
 int main(int argc, char** argv){
 
     int mysocket, conn, clilen, n; 
     struct sockaddr_in serv_addr, client_addr;
     char buffer[BUFFSIZE];
+    char response[BUFFSIZE];
+    char* buf_p;
     pid_t pid;
+
+    signal(SIGCHLD, sig_child_handler);
+
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(3000);
@@ -42,45 +48,56 @@ int main(int argc, char** argv){
             close(mysocket);
             bzero(buffer, BUFFSIZE);
             read(conn, buffer, BUFFSIZE);
-            printf("buffer:%s\n", buffer);
-            process_command(buffer);
-
-            send(conn,"I got your message\n",18, 0);
-
+            buf_p = buffer;
+            buf_p = process_command(buf_p);
+            printf("buffer after process_command: %s\n", buf_p);
+            sprintf(response, "HTTP/1.1 200 OK\r\n");
+            send(conn, response, strlen(response), 0);
             close(conn);
             exit(0);
         }
-        wait(0);
         close(conn);
     }
     return 0;
 }
 
-void process_command(char* buffer){
+char* process_command(char* buffer){
     const char* valid_commands[] = {"GET", "POST", "PUT", "DELETE", NULL};
     char* p1 = buffer; 
-    char* p2 = buffer;
     char command[MAX_COMMAND_SIZE];
     int cnt = 0;
+    int done = 0;
+    int valid = 0;
     
-    while(p1 != NULL){
+    while(p1 != NULL && !done){
         if( *(p1) == ' '){
-           *(p1) = '\0';
-            p1 ++;
-            strcpy(command, p2); 
-            p2 = p1;
+            *(p1) = '\0';
+            p1  = p1 + 1;
+            strcpy(command, buffer); 
+            buffer = p1;
+            printf("buffer: %s\n", buffer);
+            done = 1;
         }
         else{
-            p1++;
+            p1 = p1 + 1;
         }
     }
     
-    while(valid_commands[cnt] != NULL){
+    while(valid_commands[cnt] != NULL && !valid){
         if(strcmp(command, valid_commands[cnt]) == 0){
-            printf("valid command"); 
-            break;
+            valid = 1;
         }
         cnt++;
     }
-    
+    if(!valid){
+        perror("invalid command");
+    } 
+    else{
+        return p1;
+    } 
+}
+
+
+static void sig_child_handler(int sig){
+    while(waitpid((pid_t)(-1), 0, WNOHANG) > 0){} 
 }

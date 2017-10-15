@@ -1,2 +1,3 @@
 #include <stdio.h>
-void process_command(char* bufer);
+char* process_command(char* bufer);
+static void sig_child_handler(int sig);
